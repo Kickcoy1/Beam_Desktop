@@ -3,6 +3,7 @@ from tkinter import ttk
 from tkinter import filedialog, messagebox
 import json
 import csv
+from matplotlib.backends.backend_pdf import PdfPages
 
 import matplotlib
 matplotlib.use("TkAgg")
@@ -44,8 +45,260 @@ class BeamApp(tk.Tk):
         file_menu.add_command(label="Open", command=self._open_design)
         file_menu.add_separator()
         file_menu.add_command(label="Export CSV", command=self._export_csv)
+        file_menu.add_command(label="Export PDF", command=self._export_pdf)
         menu_bar.add_cascade(label="File", menu=file_menu)
         self.config(menu=menu_bar)
+
+    def _export_pdf(self, path=None):
+        if path is None:
+            path = filedialog.asksaveasfilename(
+                title="Export Calculation Sheet",
+                defaultextension=".pdf",
+                filetypes=[("PDF file", "*.pdf"), ("All files", "*.*")],
+            )
+        if not path:
+            return
+
+        self.refresh()
+        if self.result is None:
+            messagebox.showerror(
+                "Export Error",
+                "Beam results are unavailable.",
+            )
+            return
+
+        try:
+            figure = Figure(figsize=(11, 8.5), facecolor="white")
+            grid = figure.add_gridspec(
+                4, 3,
+                height_ratios=[0.55, 1.35, 1.45, 0.75],
+                hspace=0.62,
+                wspace=0.32,
+                left=0.07,
+                right=0.97,
+                top=0.94,
+                bottom=0.06,
+            )
+
+            title_ax = figure.add_subplot(grid[0, :])
+            title_ax.axis("off")
+            title_ax.text(
+                0.0, 0.65, "BEAM DESIGNER - CALCULATION SHEET",
+                fontsize=18, fontweight="bold", color="#172033",
+            )
+            title_ax.text(
+                0.0, 0.12,
+                f"{self.support_var.get()}  |  Span: {self.span:g} ft  |  "
+                f"Section: {self.section}",
+                fontsize=10, color="#667085",
+            )
+
+            inputs_ax = figure.add_subplot(grid[1, :])
+            inputs_ax.axis("off")
+            inputs_ax.add_patch(
+                matplotlib.patches.FancyBboxPatch(
+                    (0.0, 0.04), 1.0, 0.92,
+                    boxstyle="round,pad=0.012",
+                    transform=inputs_ax.transAxes,
+                    facecolor="#f8fafc",
+                    edgecolor="#dfe5ee",
+                )
+            )
+            inputs_ax.text(
+                0.02, 0.82, "Beam Inputs",
+                fontsize=11, fontweight="bold", color="#344054",
+                transform=inputs_ax.transAxes,
+            )
+            material_name = (
+                "Steel W-shapes"
+                if self.material == "steel"
+                else "Douglas Fir-Larch No. 2"
+            )
+            input_text = (
+                f"Support: {self.support_var.get()}    "
+                f"Span: {self.span:g} ft    "
+                f"Material: {material_name}\n"
+                f"Section: {self.section}    "
+                f"Deflection limit: L/{self.deflection_limit}"
+            )
+            inputs_ax.text(
+                0.02, 0.57, input_text,
+                fontsize=9.5, color="#172033",
+                transform=inputs_ax.transAxes,
+                linespacing=1.8,
+            )
+
+            load_lines = []
+            for load in self.point_loads:
+                load_lines.append(
+                    f"Point load: {load['magnitude']:g} k at "
+                    f"{load['position']:g} ft"
+                )
+            for load in self.uniform_loads:
+                load_lines.append(
+                    f"Uniform load: {load['magnitude']:g} kip/ft "
+                    f"from {load['start']:g} to {load['end']:g} ft"
+                )
+            if not load_lines:
+                load_lines.append("Applied loads: None")
+            inputs_ax.text(
+                0.02, 0.12, "Applied loads: " + "; ".join(load_lines),
+                fontsize=9, color="#344054",
+                transform=inputs_ax.transAxes,
+                wrap=True,
+            )
+
+            beam_ax = figure.add_subplot(grid[2, 0])
+            beam_ax.set_title("Beam and Loads", loc="left",
+                              fontsize=10, fontweight="bold")
+            beam_ax.set_xlim(0, self.span)
+            beam_ax.set_ylim(-0.6, 1.6)
+            beam_ax.axis("off")
+            beam_y = 0.45
+            beam_ax.plot([0, self.span], [beam_y, beam_y],
+                         color="#344054", lw=7, solid_capstyle="round")
+            if self.support == "simply-supported":
+                beam_ax.plot([0, -0.25, 0.25, 0],
+                             [0.05, -0.18, -0.18, 0.05],
+                             color="#344054", lw=1.5)
+                beam_ax.plot([self.span - 0.25, self.span + 0.25],
+                             [0.05, 0.05], color="#344054", lw=1.5)
+            else:
+                beam_ax.add_patch(
+                    matplotlib.patches.Rectangle(
+                        (-0.18, beam_y - 0.32), 0.36, 0.64,
+                        facecolor="#eef2f6", edgecolor="#344054",
+                    )
+                )
+
+            reactions = self.result["reactions"]
+            if reactions["left"] is not None:
+                beam_ax.annotate(
+                    f"{reactions['left']:.2f} k",
+                    xy=(0, beam_y), xytext=(0, 1.25), ha="center",
+                    arrowprops={"arrowstyle": "->", "color": "#15803d"},
+                    color="#15803d", fontsize=8, fontweight="bold",
+                )
+            if reactions["right"] is not None:
+                beam_ax.annotate(
+                    f"{reactions['right']:.2f} k",
+                    xy=(self.span, beam_y), xytext=(self.span, 1.25),
+                    ha="center",
+                    arrowprops={"arrowstyle": "->", "color": "#15803d"},
+                    color="#15803d", fontsize=8, fontweight="bold",
+                )
+            for load in self.uniform_loads:
+                start = max(0.0, load["start"])
+                end = min(self.span, load["end"])
+                if end > start:
+                    positions = start + (end - start) * (
+                        2 * __import__("numpy").arange(7) + 1
+                    ) / 14
+                    for position in positions:
+                        beam_ax.annotate(
+                            "", xy=(position, beam_y + 0.08),
+                            xytext=(position, 0.95),
+                            arrowprops={"arrowstyle": "->", "color": "#2563eb"},
+                        )
+            for load in self.point_loads:
+                position = max(0.0, min(self.span, load["position"]))
+                beam_ax.annotate(
+                    f"{load['magnitude']:g} k",
+                    xy=(position, beam_y), xytext=(position, 1.15),
+                    ha="center",
+                    arrowprops={"arrowstyle": "->", "color": "#2563eb"},
+                    color="#2563eb", fontsize=8,
+                )
+
+            x = self.result["x"]
+            diagram_items = [
+                (grid[2, 1], "Shear (kips)", self.result["shear"]),
+                (grid[2, 2], "Moment (kip-ft)", self.result["moment"]),
+                (grid[3, 0], "Deflection (in)", self.result["deflection"]),
+            ]
+            diagram_axes = []
+            for position, title, values in diagram_items:
+                if title == "Deflection (in)":
+                    ax = figure.add_subplot(position)
+                else:
+                    ax = figure.add_subplot(position)
+                ax.set_title(title, loc="left", fontsize=10,
+                             fontweight="bold")
+                ax.fill_between(x, 0, values, color="#dbeafe", alpha=0.9)
+                ax.plot(x, values, color="#2563eb", lw=1.8)
+                ax.axhline(0, color="#98a2b3", lw=0.8)
+                ax.set_xlim(0, self.span)
+                ax.grid(True, axis="x", color="#e4e7ec", linewidth=0.7)
+                ax.tick_params(labelsize=7)
+                extreme_index = int(abs(values).argmax())
+                decimals = 3 if title == "Deflection (in)" else 2
+                ax.annotate(
+                    f"{values[extreme_index]:.{decimals}f}",
+                    xy=(x[extreme_index], values[extreme_index]),
+                    xytext=(0, 8), textcoords="offset points",
+                    ha="center", color="#2563eb",
+                    fontsize=8, fontweight="bold",
+                )
+                diagram_axes.append(ax)
+
+            checks_ax = figure.add_subplot(grid[3, 1:])
+            checks_ax.axis("off")
+            bending_ratio = (
+                self.result["bending_stress"]
+                / self.result["allowable_bending"] * 100
+            )
+            deflection_ratio = (
+                self.result["max_deflection"]
+                / self.result["allowable_deflection"] * 100
+            )
+            bending_status = "PASS" if self.result["bending_pass"] else "FAIL"
+            deflection_status = "PASS" if self.result["deflection_pass"] else "FAIL"
+            bending_color = "#15803d" if self.result["bending_pass"] else "#b42318"
+            deflection_color = "#15803d" if self.result["deflection_pass"] else "#b42318"
+
+            checks_ax.add_patch(
+                matplotlib.patches.FancyBboxPatch(
+                    (0.0, 0.05), 1.0, 0.90,
+                    boxstyle="round,pad=0.012",
+                    transform=checks_ax.transAxes,
+                    facecolor="#f8fafc",
+                    edgecolor="#dfe5ee",
+                )
+            )
+            checks_ax.text(
+                0.03, 0.78, "Engineering Checks",
+                fontsize=11, fontweight="bold", color="#344054",
+                transform=checks_ax.transAxes,
+            )
+            checks_ax.text(
+                0.03, 0.49,
+                f"Bending: {bending_status}\n"
+                f"{self.result['bending_stress']:.3f} ksi actual / "
+                f"{self.result['allowable_bending']:.3f} ksi allowable "
+                f"({bending_ratio:.1f}% utilization)",
+                fontsize=9, color=bending_color, fontweight="bold",
+                transform=checks_ax.transAxes, linespacing=1.5,
+            )
+            checks_ax.text(
+                0.51, 0.49,
+                f"Deflection: {deflection_status}\n"
+                f"{self.result['max_deflection']:.3f} in actual / "
+                f"{self.result['allowable_deflection']:.3f} in allowable "
+                f"({deflection_ratio:.1f}% utilization)",
+                fontsize=9, color=deflection_color, fontweight="bold",
+                transform=checks_ax.transAxes, linespacing=1.5,
+            )
+
+            with PdfPages(path) as pdf:
+                pdf.infodict()["Title"] = "Beam Designer Calculation Sheet"
+                pdf.infodict()["Author"] = "Beam Designer"
+                pdf.infodict()["Subject"] = "Beam analysis and design checks"
+                pdf.savefig(figure)
+        except (OSError, ValueError, KeyError, ZeroDivisionError) as error:
+            messagebox.showerror(
+                "Export Error",
+                f"Could not export the PDF file:\n{error}",
+            )
 
     def _export_csv(self, path=None):
         if path is None:

@@ -16,3 +16,6 @@
 - Request: Implement CSV Export in the Tkinter Beam Designer.
 - Changed: Added an Export CSV option to the File menu and implemented Excel-compatible CSV export of x-position, shear, moment, and deflection.
 - Worked: Yes. Compilation passed, all five validation cases passed, CSV headers/data were verified, and Excel-compatible UTF-8 CSV export was tested.
+- Request: Implement PDF Calculation Sheet Export in the Tkinter Beam Designer.
+- Changed: Added an Export PDF option to the File menu and implemented a professional calculation sheet with beam inputs, loads, diagrams, bending check, and deflection check.
+- Worked: Yes. Compilation passed, PDF export produced a valid 112 KB+ PDF, canceled PDF dialogs were graceful, all five calculations passed, and CSV export passed its regression test.

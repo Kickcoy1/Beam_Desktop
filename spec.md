@@ -210,6 +210,10 @@ Export beam results to a CSV file, including x-position, shear, moment, and defl
 
 The CSV file must be compatible with Excel.
 
+Export a PDF calculation sheet containing the beam inputs, beam and load diagram, shear diagram, moment diagram, deflection diagram, and bending and deflection checks.
+
+Format the PDF clearly and professionally for engineering review.
+
 Out of scope
 
 Self-weight, shear stress, lateral-torsional buckling, load combinations, and continuous beams.
