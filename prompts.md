@@ -1,0 +1,3 @@
+- Request: Read existing AGENTS.md, classify its rules, update it for a Tkinter desktop app, and avoid other project file changes.
+- Changed: Updated AGENTS.md with desktop-platform, Tkinter startup, numpy module separation, matplotlib embedding, and prompt-log rules.
+- Worked: Yes.
