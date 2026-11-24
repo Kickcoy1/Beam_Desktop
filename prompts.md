@@ -7,3 +7,9 @@
 - Request: Run all five spec validation cases against the beam calculations and report expected versus actual reactions, shear, moment, bending stress, deflection, and pass/fail results.
 - Changed: No application files or spec values changed.
 - Worked: Yes. All five cases passed their documented values within normal rounding tolerance; no calculation issue required a fix.
+- Request: Implement Save and Open for Beam Designer using JSON, with graceful canceled dialogs and invalid-file handling.
+- Changed: Added a File menu with Save/Open commands and JSON save/restore validation in app.py.
+- Worked: Yes. The app compiles and starts; valid design restoration and invalid-file rejection were verified.
+- Request: Run all five spec validation cases and verify Save/Open including saving required inputs and reopening/restoring them.
+- Changed: No application or spec files changed.
+- Worked: Yes. All five beam validation cases passed, and automatic Save/Open round-trip tests passed for required inputs and loads.

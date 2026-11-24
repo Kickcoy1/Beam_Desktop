@@ -1,5 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import filedialog, messagebox
+import json
 
 import matplotlib
 matplotlib.use("TkAgg")
@@ -30,7 +32,176 @@ class BeamApp(tk.Tk):
         self.dragging_load_id = None
         self.result = None
 
+        self._build_menu()
         self._build_layout()
+        self.refresh()
+
+    def _build_menu(self):
+        menu_bar = tk.Menu(self)
+        file_menu = tk.Menu(menu_bar, tearoff=False)
+        file_menu.add_command(label="Save", command=self._save_design)
+        file_menu.add_command(label="Open", command=self._open_design)
+        menu_bar.add_cascade(label="File", menu=file_menu)
+        self.config(menu=menu_bar)
+
+    def _save_design(self):
+        path = filedialog.asksaveasfilename(
+            title="Save Beam Design",
+            defaultextension=".json",
+            filetypes=[("Beam design JSON", "*.json"), ("All files", "*.*")],
+        )
+        if not path:
+            return
+
+        design = {
+            "support": self.support,
+            "span": self.span,
+            "material": self.material,
+            "section": self.section,
+            "deflection_limit": self.deflection_limit,
+            "point_loads": [
+                {
+                    "magnitude": float(load["magnitude"]),
+                    "position": float(load["position"]),
+                }
+                for load in self.point_loads
+            ],
+            "uniform_loads": [
+                {
+                    "magnitude": float(load["magnitude"]),
+                    "start": float(load["start"]),
+                    "end": float(load["end"]),
+                }
+                for load in self.uniform_loads
+            ],
+        }
+        try:
+            with open(path, "w", encoding="utf-8") as file:
+                json.dump(design, file, indent=2)
+        except (OSError, TypeError, ValueError) as error:
+            messagebox.showerror("Save Error", f"Could not save the design:\n{error}")
+
+    def _open_design(self):
+        path = filedialog.askopenfilename(
+            title="Open Beam Design",
+            filetypes=[("Beam design JSON", "*.json"), ("All files", "*.*")],
+        )
+        if not path:
+            return
+
+        try:
+            with open(path, "r", encoding="utf-8") as file:
+                design = json.load(file)
+            self._restore_design(design)
+        except json.JSONDecodeError as error:
+            messagebox.showerror(
+                "Invalid File",
+                f"The selected file is not valid JSON:\n{error}",
+            )
+        except (OSError, UnicodeDecodeError) as error:
+            messagebox.showerror("Open Error", f"Could not open the design:\n{error}")
+        except ValueError as error:
+            messagebox.showerror("Invalid File", str(error))
+
+    def _restore_design(self, design):
+        if not isinstance(design, dict):
+            raise ValueError("The design file must contain a JSON object.")
+
+        support = design.get("support")
+        if support not in ("simply-supported", "cantilever"):
+            raise ValueError("Support type must be 'simply-supported' or 'cantilever'.")
+
+        try:
+            span = float(design["span"])
+            deflection_limit = int(design["deflection_limit"])
+            material = design["material"]
+            section = design["section"]
+            point_loads = design["point_loads"]
+            uniform_loads = design["uniform_loads"]
+        except (KeyError, TypeError, ValueError) as error:
+            raise ValueError(f"The design file is missing or has invalid data: {error}")
+
+        if not 4 <= span <= 40:
+            raise ValueError("Span must be between 4 and 40 ft.")
+        if deflection_limit not in (240, 360):
+            raise ValueError("Deflection limit must be 240 or 360.")
+        if material not in ("steel", "lumber"):
+            raise ValueError("Material must be 'steel' or 'lumber'.")
+        section_table = beam.STEEL_SECTIONS if material == "steel" else beam.LUMBER_SECTIONS
+        if section not in section_table:
+            raise ValueError("The saved section is not valid for the selected material.")
+        if not isinstance(point_loads, list) or not isinstance(uniform_loads, list):
+            raise ValueError("Loads must be stored in lists.")
+
+        restored_points = []
+        for index, load in enumerate(point_loads, start=1):
+            if (not isinstance(load, dict) or "magnitude" not in load
+                    or "position" not in load):
+                raise ValueError(f"Point load {index} is invalid.")
+            try:
+                magnitude = float(load["magnitude"])
+                position = float(load["position"])
+            except (TypeError, ValueError):
+                raise ValueError(f"Point load {index} has invalid values.")
+            if not 0 <= magnitude or not 0 <= position <= span:
+                raise ValueError(f"Point load {index} is outside the valid range.")
+            restored_points.append({
+                "id": index,
+                "magnitude": magnitude,
+                "position": position,
+            })
+
+        restored_uniforms = []
+        for index, load in enumerate(uniform_loads, start=1):
+            if not isinstance(load, dict):
+                raise ValueError(f"Uniform load {index} is invalid.")
+            try:
+                magnitude = float(load["magnitude"])
+                start = float(load["start"])
+                end = float(load["end"])
+            except (TypeError, ValueError):
+                raise ValueError(f"Uniform load {index} has invalid values.")
+            if magnitude < 0:
+                raise ValueError(f"Uniform load {index} has a negative magnitude.")
+            if not 0 <= start <= span or not 0 <= end <= span:
+                raise ValueError(f"Uniform load {index} is outside the beam.")
+            if end < start:
+                raise ValueError(f"Uniform load {index} has start after end.")
+            restored_uniforms.append({
+                "id": index,
+                "magnitude": magnitude,
+                "start": start,
+                "end": end,
+            })
+
+        self.support = support
+        self.span = span
+        self.material = material
+        self.section = section
+        self.deflection_limit = deflection_limit
+        self.point_loads = restored_points
+        self.uniform_loads = restored_uniforms
+        self.next_load_id = max(
+            [load["id"] for load in restored_points + restored_uniforms],
+            default=0,
+        ) + 1
+
+        self.support_var.set(
+            "Simply supported" if support == "simply-supported" else "Cantilever"
+        )
+        self.span_scale.set(span)
+        self.span_entry.delete(0, "end")
+        self.span_entry.insert(0, f"{span:.3f}")
+        self.limit_var.set(f"L/{deflection_limit}")
+        self.material_var.set(
+            "Steel W-shapes" if material == "steel"
+            else "Douglas Fir-Larch No. 2"
+        )
+        sections = list(section_table)
+        self.section_combo.configure(values=sections)
+        self.section_var.set(section)
+        self._update_header()
+        self._render_load_rows()
         self.refresh()
 
     def _build_layout(self):
