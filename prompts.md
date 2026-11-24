@@ -1,3 +1,9 @@
 - Request: Read existing AGENTS.md, classify its rules, update it for a Tkinter desktop app, and avoid other project file changes.
 - Changed: Updated AGENTS.md with desktop-platform, Tkinter startup, numpy module separation, matplotlib embedding, and prompt-log rules.
 - Worked: Yes.
+- Request: Approve the implementation plan and proceed with the beam desktop app.
+- Changed: Added beam_calculations.py with NumPy statics, shear, moment, deflection, bending, deflection, and section recommendation calculations; added app.py with Tkinter controls, synchronized span/load inputs, Matplotlib beam and diagrams, check cards, mouse cursor, point-load dragging, and recommendation use button.
+- Worked: Yes. Python compilation passed, app startup remained running, and documented validation reactions, maxima, stresses, deflections, and pass/fail cases matched.
+- Request: Run all five spec validation cases against the beam calculations and report expected versus actual reactions, shear, moment, bending stress, deflection, and pass/fail results.
+- Changed: No application files or spec values changed.
+- Worked: Yes. All five cases passed their documented values within normal rounding tolerance; no calculation issue required a fix.
