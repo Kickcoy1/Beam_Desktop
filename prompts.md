@@ -19,3 +19,6 @@
 - Request: Implement PDF Calculation Sheet Export in the Tkinter Beam Designer.
 - Changed: Added an Export PDF option to the File menu and implemented a professional calculation sheet with beam inputs, loads, diagrams, bending check, and deflection check.
 - Worked: Yes. Compilation passed, PDF export produced a valid 112 KB+ PDF, canceled PDF dialogs were graceful, all five calculations passed, and CSV export passed its regression test.
+- Request: Create a concise README.md for the Beam Designer desktop application.
+- Changed: Created README.md with project description, features, dependency installation, run instructions, usage steps, and an educational-use disclaimer.
+- Worked: Yes. Only README.md and prompts.md were changed.
