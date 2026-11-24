@@ -184,22 +184,56 @@ Every input has a short label with units. Hovering over a check card explains th
 
 Validation
 
-Simply supported, 20 ft, W12x26, uniform 1 kip/ft over the full span:
-reactions 10 k and 10 k; max shear 10 k; max moment 50.0 kip-ft at 10 ft; fb = 17.96 ksi; max deflection 0.609 in at 10 ft; L/360 = 0.667 in; both checks pass.
+The three selected cases were run directly through `beam_calculations.calculate` with
+recommendation calculation disabled. Values below are expected independent results
+compared with actual function results; rounding is shown to the requested precision.
+
+| Case and check | Expected | Actual | Result |
+|---|---:|---:|---|
+| 1: reactions (left, right), k | (10.000, 10.000) | (10.000, 10.000) | PASS |
+| 1: maximum moment, kip-ft | 50.000 | 50.000 | PASS |
+| 1: maximum bending stress, ksi | 17.964 | 17.964 | PASS |
+| 1: maximum deflection, in | 0.6085 | 0.6085 | PASS |
+| 1: bending / deflection checks | PASS / PASS | PASS / PASS | PASS |
+| 2: fixed reaction, k | 5.000 | 5.000 | PASS |
+| 2: fixed-end moment, kip-ft | 50.000 | 50.000 | PASS |
+| 2: maximum deflection, in | 0.4868 | 0.4868 | PASS |
+| 2: deflection check at L/360 | FAIL | FAIL | PASS |
+| 3: reactions (left, right), k | (0.300, 0.300) | (0.300, 0.300) | PASS |
+| 3: maximum moment, kip-ft | 0.900 | 0.900 | PASS |
+| 3: maximum bending stress, ksi | 0.5049 | 0.5049 | PASS |
+| 3: maximum deflection, in | 0.1474 | 0.1474 | PASS |
+| 3: bending / deflection checks | PASS / PASS | PASS / PASS | PASS |
+
+Case 1 also passed the symmetry check: left/right reaction error was 0.0,
+maximum moment symmetry error was less than 4.1e-14 kip-ft, and maximum
+deflection symmetry error was less than 1.3e-15 in.
+
+Independent expected-value sources:
+
+- Case 1: for a full-span uniform load, `R = wL/2 = 10 k`,
+  `Mmax = wL^2/8 = 50 kip-ft`, and
+  `fb = Mmax*12/Sx = 50*12/33.4 = 17.964 ksi`. The standard
+  simply supported UDL deflection equation `5wL^4/(384EI)` gives
+  approximately 0.6085 in after converting feet to inches.
+- Case 2: `Mfixed = PL = 5*10 = 50 kip-ft` and the standard cantilever
+  end-load equation `PL^3/(3EI)` gives approximately 0.4868 in.
+- Case 3: the application uses Douglas Fir-Larch No. 2 `2x10` properties
+  `E = 1600.0 ksi`, `Ix = 98.93 in^4`, and `Sx = 21.39 in^3`.
+  Independent equations give `R = 0.05*12/2 = 0.300 k`,
+  `Mmax = 0.05*12^2/8 = 0.900 kip-ft`, and
+  `fb = 0.900*12/21.39 = 0.5049 ksi`; the standard UDL deflection
+  equation gives approximately 0.1474 in.
+
+The other specification cases remain additional validation targets:
 
 Simply supported, 20 ft, W12x26, point load 10 k at 5 ft:
 reactions 7.5 k (left) and 2.5 k (right); max moment 37.5 kip-ft at 5 ft; fb = 13.47 ksi; max deflection 0.340 in at 8.82 ft.
 
-Cantilever, 10 ft, W12x26, point load 5 k at the free end:
-reaction 5 k and fixed-end moment 50 kip-ft; max deflection 0.487 in at the free end (PL^3/3EI); L/360 = 0.333 in, so deflection fails.
-
-Simply supported 12 ft 2x10 joist, uniform 0.05 kip/ft:
-max moment 0.90 kip-ft; fb = 0.505 ksi; max deflection 0.147 in; both pass.
-
 Simply supported, 30 ft, W18x35, uniform 2 kips/ft from 0 to 15 ft only:
 reactions 22.5 k (left) and 7.5 k (right); max moment 126.6 kip-ft at 11.25 ft.
 
-## Desktop Features
+## Option A Desktop Features
 
 - File menu with Save and Open options.
 - Save beam designs to a file, including support type,
