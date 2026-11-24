@@ -199,8 +199,15 @@ max moment 0.90 kip-ft; fb = 0.505 ksi; max deflection 0.147 in; both pass.
 Simply supported, 30 ft, W18x35, uniform 2 kips/ft from 0 to 15 ft only:
 reactions 22.5 k (left) and 7.5 k (right); max moment 126.6 kip-ft at 11.25 ft.
 
+## Desktop Features
+
+- File menu with Save and Open options.
+- Save beam designs to a file, including support type,
+  span, section, deflection limit, and all loads.
+- Open previously saved beam design files and restore
+  all saved inputs in the application.
+
 Out of scope
 
 Self-weight, shear stress, lateral-torsional buckling, load combinations, and continuous beams.
 
-Saving designs.
