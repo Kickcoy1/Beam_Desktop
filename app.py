@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog, messagebox
 import json
+import csv
 
 import matplotlib
 matplotlib.use("TkAgg")
@@ -41,8 +42,56 @@ class BeamApp(tk.Tk):
         file_menu = tk.Menu(menu_bar, tearoff=False)
         file_menu.add_command(label="Save", command=self._save_design)
         file_menu.add_command(label="Open", command=self._open_design)
+        file_menu.add_separator()
+        file_menu.add_command(label="Export CSV", command=self._export_csv)
         menu_bar.add_cascade(label="File", menu=file_menu)
         self.config(menu=menu_bar)
+
+    def _export_csv(self, path=None):
+        if path is None:
+            path = filedialog.asksaveasfilename(
+                title="Export Beam Results",
+                defaultextension=".csv",
+                filetypes=[("CSV file", "*.csv"), ("All files", "*.*")],
+            )
+        if not path:
+            return
+
+        if self.result is None:
+            self.refresh()
+        if self.result is None:
+            messagebox.showerror(
+                "Export Error",
+                "Beam results are unavailable.",
+            )
+            return
+
+        try:
+            with open(path, "w", encoding="utf-8-sig", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow([
+                    "x-position (ft)",
+                    "shear (kips)",
+                    "moment (kip-ft)",
+                    "deflection (in)",
+                ])
+                for x, shear, moment, deflection in zip(
+                    self.result["x"],
+                    self.result["shear"],
+                    self.result["moment"],
+                    self.result["deflection"],
+                ):
+                    writer.writerow([
+                        f"{float(x):.6f}",
+                        f"{float(shear):.6f}",
+                        f"{float(moment):.6f}",
+                        f"{float(deflection):.6f}",
+                    ])
+        except (OSError, csv.Error, TypeError, ValueError) as error:
+            messagebox.showerror(
+                "Export Error",
+                f"Could not export the CSV file:\n{error}",
+            )
 
     def _save_design(self):
         path = filedialog.asksaveasfilename(

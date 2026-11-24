@@ -206,6 +206,9 @@ reactions 22.5 k (left) and 7.5 k (right); max moment 126.6 kip-ft at 11.25 ft.
   span, section, deflection limit, and all loads.
 - Open previously saved beam design files and restore
   all saved inputs in the application.
+Export beam results to a CSV file, including x-position, shear, moment, and deflection values along the beam.
+
+The CSV file must be compatible with Excel.
 
 Out of scope
 

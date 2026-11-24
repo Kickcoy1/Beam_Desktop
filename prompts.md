@@ -13,3 +13,6 @@
 - Request: Run all five spec validation cases and verify Save/Open including saving required inputs and reopening/restoring them.
 - Changed: No application or spec files changed.
 - Worked: Yes. All five beam validation cases passed, and automatic Save/Open round-trip tests passed for required inputs and loads.
+- Request: Implement CSV Export in the Tkinter Beam Designer.
+- Changed: Added an Export CSV option to the File menu and implemented Excel-compatible CSV export of x-position, shear, moment, and deflection.
+- Worked: Yes. Compilation passed, all five validation cases passed, CSV headers/data were verified, and Excel-compatible UTF-8 CSV export was tested.
